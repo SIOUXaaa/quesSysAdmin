@@ -2,11 +2,20 @@
 import { ref, reactive, onMounted, watch } from "vue";
 import axios from "axios";
 import { ElMessage, FormInstance } from "element-plus";
+import { ProjectInfo } from "../utils/type";
+import {ProjectInfoParams, DataParams, DataResponse, ProjectInfoResponse} from "../utils/interface"
+
+const props = defineProps({
+    projectInfo: {
+        type: Object as () => ProjectInfoParams,
+        required: true,
+    },
+});
 
 const columns = [
     {
         label: "Project ID",
-        dataIndex: "project_id",
+        dataIndex: "project",
     },
     {
         label: "User ID",
@@ -27,8 +36,14 @@ const columns = [
 ];
 
 const formInstance = ref<FormInstance>();
+const projectInfo = reactive<ProjectInfo>({
+    // project_id: props.projectInfo.project_id,
+    project_id: "django-demo",
+    project_name: "",
+    project_desc: "",
+});
 
-const dataSource = ref([]);
+const dataSource = ref();
 const loading = ref(false);
 const pagination = reactive({
     currentPage: 1,
@@ -36,19 +51,32 @@ const pagination = reactive({
     total: 0,
     pageSizeOptions: ["10", "20", "30", "40"],
 });
-const filterID = ref("");
+
+const modifyProjectInfo = async () => {
+    try {
+        let params: ProjectInfoParams = {
+            project_id: projectInfo.project_id
+        }
+        const res = await axios.get<ProjectInfoResponse>("project/get/", { params });
+        console.log(res);
+        projectInfo.project_name = res.data.project_name;
+        projectInfo.project_desc = res.data.description;
+    } catch (error) {
+        ElMessage.warning("数据请求失败");
+    }
+}
 
 const fetchData = async () => {
     try {
-        let params = {
-            project_id: filterID.value,
+        let params: DataParams = {
+            project: projectInfo.project_id,
             current_page: pagination.currentPage,
             page_size: pagination.pageSize,
         };
         loading.value = true;
-        const res = await axios.get("project/get/", { params });
+        const res = await axios.get<DataResponse>("project/get/", { params });
         dataSource.value = res.data.results;
-        pagination.total = res.data.count;
+        pagination.total = res.data.total;
     } catch (error) {
         ElMessage.warning("数据请求失败");
     } finally {
@@ -56,15 +84,15 @@ const fetchData = async () => {
     }
 };
 
-const handleFilter = () => {
+const handleProjectInfoChange = () => {
     pagination.currentPage = 1;
     fetchData();
 };
 
 const handleReset = () => {
     formInstance?.value?.resetFields();
-    filterID.value = "";
-    handleFilter();
+    projectInfo.project_id = "";
+    handleProjectInfoChange();
 };
 
 const handleSizeChange = (val: number) => {
@@ -77,6 +105,7 @@ const handleCurrentChange = (val: number) => {
     fetchData();
 };
 
+modifyProjectInfo();
 fetchData();
 </script>
 
@@ -84,10 +113,18 @@ fetchData();
     <div class="btn">
         <el-form :model="formInstance" inline>
             <el-form-item label="Project ID">
-                <el-input v-model="filterID" />
+                <el-input v-model="projectInfo.project_id" disabled />
+            </el-form-item>
+            <el-form-item label="Project Name">
+                <el-input v-model="projectInfo.project_name" />
+            </el-form-item>
+            <el-form-item label="description">
+                <el-input v-model="projectInfo.project_desc" />
             </el-form-item>
             <el-form-item>
-                <el-button type="primary" @click="handleFilter">筛选</el-button>
+                <el-button type="primary" @click="handleProjectInfoChange"
+                    >修改</el-button
+                >
                 <el-button class="reset" @click="handleReset">重置</el-button>
             </el-form-item>
         </el-form>
@@ -143,7 +180,7 @@ fetchData();
     margin-bottom: 15px;
 }
 
-.pagination{
+.pagination {
     margin-top: 15px;
     float: right;
 }

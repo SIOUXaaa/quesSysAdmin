@@ -15,7 +15,7 @@ import MainTable from "../components/mainTable.vue";
                 </el-menu>
             </el-aside>
             <el-main class="main">
-                <mainTable />
+                <mainTable :project_id="{project_id: '123'}" />
             </el-main>
         </el-container>
     </div>
