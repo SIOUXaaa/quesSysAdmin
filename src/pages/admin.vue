@@ -1,6 +1,21 @@
 <script setup lang="ts">
+import axios from "axios";
+import { ElMessage } from "element-plus";
 import { ref, toRef, defineComponent, reactive, onMounted } from "vue";
 import MainTable from "../components/mainTable.vue";
+import { ProjectInfoParams, ProjectInfoResponse } from "../utils/interface";
+import { ProjectInfo } from "../utils/type";
+
+const projectList = ref<ProjectInfo[]>();
+
+const fetchProjectList = async () => {
+    try {
+        const res = await axios.get<ProjectInfoResponse[]>("project/get/");
+        projectList.value = res.data
+    } catch (error) {
+        ElMessage.warning("获取project信息错误");
+    }
+};
 </script>
 
 <template>
@@ -15,7 +30,7 @@ import MainTable from "../components/mainTable.vue";
                 </el-menu>
             </el-aside>
             <el-main class="main">
-                <mainTable :project_id="{project_id: '123'}" />
+                <mainTable :project_id="{ project_id: '123' }" />
             </el-main>
         </el-container>
     </div>
@@ -43,7 +58,7 @@ import MainTable from "../components/mainTable.vue";
     justify-content: center;
 }
 
-.main{
+.main {
     background-color: #fff;
     margin: 10px;
     box-shadow: 0 0 8px #cdd0d6;

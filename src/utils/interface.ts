@@ -1,19 +1,27 @@
-export interface ApiResponse{
-    
-}
 
-
-export interface ProjectInfoParams  {
+export interface ProjectInfoParams {
     project_id: string
 }
 
-export interface DataParams  {
+export interface ProjectInfoResponse {
+    project_id: string,
+    project_name: string,
+    description: string
+}
+
+export interface ProjectInfoPutParams {
+    project_id: string,
+    project_name: string,
+    description: string
+}
+
+export interface DataParams {
     project: string,
     page_size: number,
     current_page: number,
 }
 
-export interface DataResponse  {
+export interface DataResponse {
     count: number,
     next: string | null,
     previous: string | null,
@@ -29,8 +37,3 @@ export interface DataResponse  {
     total: number
 }
 
-export interface ProjectInfoResponse  {
-    project_id: string,
-    project_name: string,
-    description: string
-}

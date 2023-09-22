@@ -3,11 +3,17 @@ import { ref, reactive, onMounted, watch } from "vue";
 import axios from "axios";
 import { ElMessage, FormInstance } from "element-plus";
 import { ProjectInfo } from "../utils/type";
-import {ProjectInfoParams, DataParams, DataResponse, ProjectInfoResponse} from "../utils/interface"
+import {
+    ProjectInfoParams,
+    DataParams,
+    DataResponse,
+    ProjectInfoResponse,
+    ProjectInfoPutParams,
+} from "../utils/interface";
 
 const props = defineProps({
     projectInfo: {
-        type: Object as () => ProjectInfoParams,
+        type: Object as () => ProjectInfo,
         required: true,
     },
 });
@@ -40,7 +46,7 @@ const projectInfo = reactive<ProjectInfo>({
     // project_id: props.projectInfo.project_id,
     project_id: "django-demo",
     project_name: "",
-    project_desc: "",
+    description: "",
 });
 
 const dataSource = ref();
@@ -52,19 +58,20 @@ const pagination = reactive({
     pageSizeOptions: ["10", "20", "30", "40"],
 });
 
-const modifyProjectInfo = async () => {
+const getProjectInfo = async () => {
     try {
         let params: ProjectInfoParams = {
-            project_id: projectInfo.project_id
-        }
-        const res = await axios.get<ProjectInfoResponse>("project/get/", { params });
-        console.log(res);
+            project_id: projectInfo.project_id,
+        };
+        const res = await axios.get<ProjectInfoResponse>("project/get/", {
+            params,
+        });
         projectInfo.project_name = res.data.project_name;
-        projectInfo.project_desc = res.data.description;
+        projectInfo.description = res.data.description;
     } catch (error) {
         ElMessage.warning("数据请求失败");
     }
-}
+};
 
 const fetchData = async () => {
     try {
@@ -74,7 +81,10 @@ const fetchData = async () => {
             page_size: pagination.pageSize,
         };
         loading.value = true;
-        const res = await axios.get<DataResponse>("project/get/", { params });
+        const res = await axios.get<DataResponse>("surveyResponses/get/", {
+            params,
+        });
+        // console.log(res);
         dataSource.value = res.data.results;
         pagination.total = res.data.total;
     } catch (error) {
@@ -84,15 +94,28 @@ const fetchData = async () => {
     }
 };
 
-const handleProjectInfoChange = () => {
+const handleProjectInfoChange = async () => {
     pagination.currentPage = 1;
-    fetchData();
+    try {
+        let params: ProjectInfoPutParams = {
+            project_id: projectInfo.project_id,
+            project_name: projectInfo.project_name,
+            description: projectInfo.description,
+        };
+        const res = await axios.get<ProjectInfoResponse>("project/put/", {
+            params,
+        });
+        console.log(res.data);
+        projectInfo.project_name = res.data.project_id;
+        projectInfo.description = res.data.description;
+    } catch (error) {
+        ElMessage.warning("问卷信息数据请求失败");
+    }
 };
 
 const handleReset = () => {
-    formInstance?.value?.resetFields();
-    projectInfo.project_id = "";
-    handleProjectInfoChange();
+    projectInfo.project_name = props.projectInfo.project_id;
+    projectInfo.description = props.projectInfo.description;
 };
 
 const handleSizeChange = (val: number) => {
@@ -105,7 +128,7 @@ const handleCurrentChange = (val: number) => {
     fetchData();
 };
 
-modifyProjectInfo();
+getProjectInfo();
 fetchData();
 </script>
 
@@ -119,7 +142,7 @@ fetchData();
                 <el-input v-model="projectInfo.project_name" />
             </el-form-item>
             <el-form-item label="description">
-                <el-input v-model="projectInfo.project_desc" />
+                <el-input v-model="projectInfo.description" />
             </el-form-item>
             <el-form-item>
                 <el-button type="primary" @click="handleProjectInfoChange"
