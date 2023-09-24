@@ -1,24 +1,27 @@
 <script lang="ts" setup>
-import { ref, reactive, onMounted, watch } from "vue";
+import { ref, reactive, onMounted, watch, onBeforeMount, inject } from "vue";
 import axios from "axios";
 import { ElMessage, FormInstance } from "element-plus";
-import { ProjectInfo } from "../utils/type";
+import { DataInfo, ProjectInfo } from "../utils/type";
 import {
-    ProjectInfoParams,
+    ProjectIdParams,
     DataParams,
     DataResponse,
     ProjectInfoResponse,
-    ProjectInfoPutParams,
+    ProjectInfoParams,
+    DataResults,
 } from "../utils/interface";
+import { keysOf } from "element-plus/es/utils";
 
 const props = defineProps({
     projectInfo: {
         type: Object as () => ProjectInfo,
         required: true,
+        default: () => ({}),
     },
 });
 
-const columns = [
+const columns = ref([
     {
         label: "Project ID",
         dataIndex: "project",
@@ -35,21 +38,17 @@ const columns = [
         label: "IP",
         dataIndex: "ip",
     },
-    {
-        label: "Answers",
-        dataIndex: "answer",
-    },
-];
+]);
 
 const formInstance = ref<FormInstance>();
 const projectInfo = reactive<ProjectInfo>({
-    // project_id: props.projectInfo.project_id,
-    project_id: "django-demo",
+    project_id: "",
     project_name: "",
     description: "",
 });
 
-const dataSource = ref();
+const dataList = ref<DataResults[]>([]);
+const dataSource = ref<DataInfo[]>([]);
 const loading = ref(false);
 const pagination = reactive({
     currentPage: 1,
@@ -58,18 +57,55 @@ const pagination = reactive({
     pageSizeOptions: ["10", "20", "30", "40"],
 });
 
-const getProjectInfo = async () => {
-    try {
-        let params: ProjectInfoParams = {
-            project_id: projectInfo.project_id,
-        };
-        const res = await axios.get<ProjectInfoResponse>("project/get/", {
-            params,
+const modifyProjectInfo = inject<Function>("modifyProjectInfo");
+
+const convertData = (data: DataResults) => {
+    const { project, user_id, ip, time, answer, ...rest } = data;
+    const dataInfo: DataInfo = {
+        project,
+        user_id,
+        ip,
+        time,
+        ...answer,
+        ...rest,
+    };
+    return dataInfo;
+};
+
+const computeColumns = () => {
+    columns.value = columns.value.slice(0, 4);
+    if (dataList.value.length > 0) {
+        const keys = Object.keys(dataList.value[0].answer);
+        keys.forEach((key) => {
+            columns.value.push({
+                label: key,
+                dataIndex: key,
+            });
         });
-        projectInfo.project_name = res.data.project_name;
-        projectInfo.description = res.data.description;
+    } else {
+        ElMessage.warning("当前问卷没有提交记录");
+    }
+};
+
+const computeAnswer = (list: DataResults[]) => {
+    dataSource.value = [];
+    list.forEach((item) => {
+        const dataInfo = convertData(item);
+        dataSource.value?.push(dataInfo);
+    });
+};
+
+const fetchProjectList = async () => {
+    try {
+        const response = await axios.get<ProjectInfoResponse>("project/get/", {
+            params: {
+                project_id: projectInfo.project_id,
+            },
+        });
+        projectInfo.project_name = response.data.project_name;
+        projectInfo.description = response.data.description;
     } catch (error) {
-        ElMessage.warning("数据请求失败");
+        ElMessage.warning("获取project信息错误");
     }
 };
 
@@ -84,10 +120,13 @@ const fetchData = async () => {
         const res = await axios.get<DataResponse>("surveyResponses/get/", {
             params,
         });
-        // console.log(res);
-        dataSource.value = res.data.results;
+        console.log(res);
+        dataList.value = res.data.results;
+        computeColumns();
+        computeAnswer(dataList.value);
         pagination.total = res.data.total;
     } catch (error) {
+        console.log(error);
         ElMessage.warning("数据请求失败");
     } finally {
         loading.value = false;
@@ -97,24 +136,26 @@ const fetchData = async () => {
 const handleProjectInfoChange = async () => {
     pagination.currentPage = 1;
     try {
-        let params: ProjectInfoPutParams = {
+        let params: ProjectInfoParams = {
             project_id: projectInfo.project_id,
             project_name: projectInfo.project_name,
             description: projectInfo.description,
         };
-        const res = await axios.get<ProjectInfoResponse>("project/put/", {
-            params,
-        });
-        console.log(res.data);
-        projectInfo.project_name = res.data.project_id;
+        const res = await axios.put<ProjectInfoResponse>(
+            "project/put/",
+            params
+        );
+        projectInfo.project_name = res.data.project_name;
         projectInfo.description = res.data.description;
+        modifyProjectInfo?.(projectInfo);
     } catch (error) {
         ElMessage.warning("问卷信息数据请求失败");
     }
 };
 
 const handleReset = () => {
-    projectInfo.project_name = props.projectInfo.project_id;
+    projectInfo.project_id = props.projectInfo.project_id;
+    projectInfo.project_name = props.projectInfo.project_name;
     projectInfo.description = props.projectInfo.description;
 };
 
@@ -128,71 +169,76 @@ const handleCurrentChange = (val: number) => {
     fetchData();
 };
 
-getProjectInfo();
-fetchData();
+watch(
+    () => props.projectInfo,
+    (newValue) => {
+        if (newValue) {
+            handleReset();
+            fetchProjectList();
+            fetchData();
+        }
+    }
+);
 </script>
 
 <template>
-    <div class="btn">
-        <el-form :model="formInstance" inline>
-            <el-form-item label="Project ID">
-                <el-input v-model="projectInfo.project_id" disabled />
-            </el-form-item>
-            <el-form-item label="Project Name">
-                <el-input v-model="projectInfo.project_name" />
-            </el-form-item>
-            <el-form-item label="description">
-                <el-input v-model="projectInfo.description" />
-            </el-form-item>
-            <el-form-item>
-                <el-button type="primary" @click="handleProjectInfoChange"
-                    >修改</el-button
-                >
-                <el-button class="reset" @click="handleReset">重置</el-button>
-            </el-form-item>
-        </el-form>
+    <div>
+        <div class="btn" v-if="projectInfo">
+            <el-form :model="formInstance" inline>
+                <el-form-item label="Project ID">
+                    <el-input v-model="projectInfo.project_id" disabled />
+                </el-form-item>
+                <el-form-item label="Project Name">
+                    <el-input v-model="projectInfo.project_name" />
+                </el-form-item>
+                <el-form-item label="description">
+                    <el-input v-model="projectInfo.description" />
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="handleProjectInfoChange"
+                        >修改</el-button
+                    >
+                    <el-button class="reset" @click="handleReset"
+                        >重置</el-button
+                    >
+                </el-form-item>
+            </el-form>
+        </div>
+        <el-table
+            :data="dataSource"
+            :row-key="(record: any, index: any) => index"
+            :height="'calc(100vh - 200px)'"
+            v-loading="loading"
+            class="table"
+        >
+            <template #default="{ row }">
+                <el-table-column
+                    v-for="column in columns"
+                    :key="column.dataIndex"
+                    :prop="column.dataIndex"
+                    :label="column.label"
+                />
+            </template>
+        </el-table>
+        <el-pagination
+            background
+            v-model:current-page="pagination.currentPage"
+            v-model:page-size="pagination.pageSize"
+            :page-sizes="pagination.pageSizeOptions"
+            :total="pagination.total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+            class="pagination"
+        >
+        </el-pagination>
     </div>
-    <el-table
-        :data="dataSource"
-        :row-key="(record: any, index: any) => index"
-        :height="'calc(100vh - 200px)'"
-        v-loading="loading"
-        class="table"
-    >
-        <template #default="{ row }">
-            <el-table-column
-                v-for="column in columns"
-                :key="column.dataIndex"
-                :prop="column.dataIndex"
-                :label="column.label"
-            >
-                <template #default="{ row }">
-                    <span v-if="typeof row[column.dataIndex] === 'object'">
-                        {{ JSON.stringify(row[column.dataIndex]) }}
-                    </span>
-                    <span v-else>{{ row[column.dataIndex] }}</span>
-                </template>
-            </el-table-column>
-        </template>
-    </el-table>
-    <el-pagination
-        background
-        v-model:current-page="pagination.currentPage"
-        v-model:page-size="pagination.pageSize"
-        :page-sizes="pagination.pageSizeOptions"
-        :total="pagination.total"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        class="pagination"
-    >
-    </el-pagination>
 </template>
 
 <style scoped>
 .table {
     max-width: 100%;
-    max-height: 100%;
+    max-height: 90%;
 }
 
 .reset {

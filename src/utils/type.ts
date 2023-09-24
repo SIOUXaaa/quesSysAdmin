@@ -4,3 +4,10 @@ export type ProjectInfo = {
     description: string,
 }
 
+export type DataInfo = {
+    project: string,
+    user_id: string,
+    ip: string,
+    time: string,
+    [key: string]: string
+}

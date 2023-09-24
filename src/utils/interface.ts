@@ -1,5 +1,5 @@
 
-export interface ProjectInfoParams {
+export interface ProjectIdParams {
     project_id: string
 }
 
@@ -9,7 +9,7 @@ export interface ProjectInfoResponse {
     description: string
 }
 
-export interface ProjectInfoPutParams {
+export interface ProjectInfoParams {
     project_id: string,
     project_name: string,
     description: string
@@ -21,19 +21,29 @@ export interface DataParams {
     current_page: number,
 }
 
+export interface DataResults {
+    project: string,
+    user_id: string,
+    answer: {
+        [key: string]: string
+    },
+    ip: string,
+    time: string
+}
+
 export interface DataResponse {
     count: number,
     next: string | null,
     previous: string | null,
-    results: Array<{
+    results: {
         project: string,
         user_id: string,
-        answer: Array<{
+        answer: {
             [key: string]: string
-        }>,
+        },
         ip: string,
         time: string
-    }>,
+    }[],
     total: number
 }
 
