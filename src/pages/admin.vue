@@ -36,7 +36,7 @@ const fetchProjectList = () => {
                 resolve(true);
             })
             .catch((err) => {
-                ElMessage.warning("获取project信息错误");
+                ElMessage.warning("获取project信息错误" + err);
                 reject(false);
             });
     });

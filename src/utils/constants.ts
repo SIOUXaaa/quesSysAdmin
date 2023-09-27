@@ -1,3 +1,3 @@
 export const CONSTANTS = {
-    queryURL: 'http://localhost:8080/'
+    queryURL: 'http://szuswift.com:800/'
 }
