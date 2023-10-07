@@ -169,6 +169,28 @@ const handleCurrentChange = (val: number) => {
     fetchData();
 };
 
+const handleDownloadData = async () => {
+    let params = {
+        project: props.projectInfo.project_id,
+    };
+    axios
+        .get("excel/get/", {
+            params,
+            responseType: "blob"
+        })
+        .then((res) => {
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = params.project + '.xlsx'
+            link.click();
+            window.URL.revokeObjectURL(url);
+        })
+        .catch((err) => {
+            ElMessage.error("下载错误: " + err);
+        });
+};
+
 watch(
     () => props.projectInfo,
     (newValue) => {
@@ -220,6 +242,8 @@ watch(
                 />
             </template>
         </el-table>
+
+        <el-button type="success" @click="handleDownloadData" class="download">导出excel</el-button>
         <el-pagination
             background
             v-model:current-page="pagination.currentPage"
@@ -247,6 +271,11 @@ watch(
 
 .btn {
     margin-bottom: 15px;
+}
+
+.download{
+    margin-top: 15px;
+    float: left;
 }
 
 .pagination {
