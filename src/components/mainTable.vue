@@ -179,12 +179,12 @@ const handleDownloadData = async () => {
             responseType: "blob"
         })
         .then((res) => {
-            const url = window.URL.createObjectURL(new Blob([res.data]));
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = params.project + '.xlsx'
-            link.click();
-            window.URL.revokeObjectURL(url);
+                const url = window.URL.createObjectURL(new Blob([res.data]));
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = params.project + '.xlsx'
+                link.click();
+                window.URL.revokeObjectURL(url);
         })
         .catch((err) => {
             ElMessage.error("下载错误: " + err);
