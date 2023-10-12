@@ -1,28 +1,38 @@
+import { convertToken } from './../utils/utils';
+import axios from 'axios';
 import { defineStore } from 'pinia'
+import router from '../router';
 
 const useAuthStore = defineStore("auth", {
     state: () => ({
-        user: null,
+        username: "",
         isLoggedIn: false,
-        token: null
+        token: ""
     }),
     getters: {
-        getUser: (state) => state.user,
+        getUser: (state) => state.username,
         getIsLoggedIn: (state) => state.isLoggedIn,
         getToken: (state) => state.token
     },
     actions: {
-        login(user_id: string, password: string) {
-
-        },
-        register(user_id: string, password: string) {
-
-        },
-        logout() {
-
+        login(username: string) {
+            this.username = username;
+            this.isLoggedIn = true;
         },
         setToken(token: string) {
-
+            this.token = token;
+        },
+        async validateToken() {
+            const res = await axios.get('token/', {
+                headers: {
+                    Authorization: convertToken(this.token)
+                }
+            })
+            if (res.status != 200) {
+                this.isLoggedIn = false;
+                throw new Error("Invalid token");
+            }
+            this.isLoggedIn = true;
         }
     }
 });

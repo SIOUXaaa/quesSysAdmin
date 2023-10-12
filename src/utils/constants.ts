@@ -1,4 +1,5 @@
 export const CONSTANTS = {
     // queryURL: 'http://szuswift.com:800/'
-    queryURL: 'http://localhost:8080/'
+    apiURL: 'http://localhost:8080/',
+    timeout: 5000
 }

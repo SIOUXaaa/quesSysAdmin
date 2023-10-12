@@ -1,17 +1,21 @@
 <script setup lang="ts">
 import { ref, toRef, defineComponent, reactive, onMounted } from "vue";
-import "./style.css";
+import { LoginParams, LoginResponse } from "../../utils/interface.ts";
+import axios from "axios";
+import router from "../../router";
+import useAuthStore from "../../stores";
 
 const loginLoading = ref(false);
 const signUpLoading = ref(false);
+const loginRef = ref<FormInstance>(null);
 
 const loginForm = reactive({
-    name: "",
+    username: "",
     password: "",
 });
 
 const loginRules = {
-    name: [
+    username: [
         {
             required: true,
             message: "请输入用户名/手机号",
@@ -27,8 +31,34 @@ const loginRules = {
     ],
 };
 
-const login = () => {
-    //TODO: 登录功能
+const login = async () => {
+    // TODO: 登录功能
+    if (loginRef.value) {
+        loginRef.value.validate((valid) => {
+            if (!valid) {
+                ElMessage.warning("请输入账号或密码");
+            } else {
+                let params: LoginParams = {
+                    username: loginForm.username,
+                    password: loginForm.password,
+                };
+                axios
+                    .post<LoginResponse>("user/login/", params)
+                    .then((res) => {
+                        const authStore = useAuthStore();
+                        localStorage.setItem("token", res.data.token);
+                        authStore.login(res.data.username);
+                        router.push("/admin");
+                    })
+                    .catch((error) => {
+                        ElMessage.warning("登录失败: 用户或密码错误");
+                        console.log(error);
+                    });
+            }
+        });
+    }else{
+        ElMessage.warning('出现错误');
+    }
 };
 </script>
 
@@ -47,11 +77,11 @@ const login = () => {
                         <i
                             ><el-icon><User /></el-icon
                         ></i>
-                        <el-form-item prop="name">
+                        <el-form-item prop="username">
                             <el-input
-                                v-model="loginForm.name"
+                                v-model="loginForm.username"
                                 placeholder="账号"
-                                @keyup.enter="Login(loginForm)"
+                                @keyup.enter="login()"
                             />
                         </el-form-item>
                     </div>
@@ -66,14 +96,14 @@ const login = () => {
                                 placeholder="密码"
                                 autocomplete="off"
                                 show-password
-                                @keyup.enter="Login(loginForm)"
+                                @keyup.enter="login()"
                             />
                         </el-form-item>
                     </div>
                     <el-button
                         type="primary"
                         :loading="loginLoading"
-                        @click="Login(loginForm)"
+                        @click="login()"
                         class="btn form"
                         round
                     >
@@ -92,6 +122,7 @@ const login = () => {
 </template>
 
 <style scoped>
+@import "./style.css";
 .el-button.is-round {
     border-radius: 49px;
 }
