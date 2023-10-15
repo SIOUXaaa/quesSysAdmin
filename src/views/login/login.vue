@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, toRef, defineComponent, reactive, onMounted } from "vue";
-import { LoginParams, LoginResponse } from "../../utils/interface.ts";
+import { LoginParams, LoginResponse } from "../../utils/interface";
 import axios from "axios";
 import router from "../../router";
 import useAuthStore from "../../stores";
+import { FormInstance, ElMessage } from "element-plus";
 
 const loginLoading = ref(false);
 const signUpLoading = ref(false);
-const loginRef = ref<FormInstance>(null);
+const loginRef = ref<FormInstance>();
 
 const loginForm = reactive({
     username: "",
@@ -34,7 +35,7 @@ const loginRules = {
 const login = async () => {
     // TODO: 登录功能
     if (loginRef.value) {
-        loginRef.value.validate((valid) => {
+        loginRef.value.validate((valid:any) => {
             if (!valid) {
                 ElMessage.warning("请输入账号或密码");
             } else {

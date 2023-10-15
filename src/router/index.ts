@@ -34,7 +34,7 @@ router.beforeEach(async (to, from, next) => {
                 await authStore.validateToken()
                 next();
             } catch (error) {
-                ElMessage.warning("身份验证错误:" + error)
+                // ElMessage.warning("身份验证错误:" + error)
             }
         }
         if (!authStore.isLoggedIn) {
